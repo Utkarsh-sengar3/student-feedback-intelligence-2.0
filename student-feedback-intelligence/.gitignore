@@ -13,6 +13,18 @@ env/
 data/raw/*
 data/processed/*
 data/external/*
+
+# Keep required processed artifacts for deployment
+!data/processed/
+data/processed/*
+!data/processed/edurabsa/
+data/processed/edurabsa/*
+!data/processed/edurabsa/phase16/
+data/processed/edurabsa/phase16/*
+!data/processed/edurabsa/phase17/
+data/processed/edurabsa/phase17/*
+
+# Keep raw dataset placeholder
 !data/raw/edurabsa/
 !data/raw/edurabsa/.gitkeep
 
