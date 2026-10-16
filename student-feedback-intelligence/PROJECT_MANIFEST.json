@@ -1,0 +1,7 @@
+{
+  "project": "AI-Based Student Feedback Sentiment Intelligence",
+  "status": "architecture-only",
+  "dataset_included": false,
+  "dataset_location": "data/raw/edurabsa/",
+  "phase": "Phase 1 - Dataset Inspection pending"
+}

@@ -1,0 +1,7 @@
+{
+  "method": "Top-2000 training-aspect exact phrase matching",
+  "annotation_level_exact_hit_rate": 0.6084788029925187,
+  "review_level_precision": 0.19886533293520453,
+  "review_level_recall": 0.5698151950718686,
+  "review_level_f1": 0.2948337686484572
+}

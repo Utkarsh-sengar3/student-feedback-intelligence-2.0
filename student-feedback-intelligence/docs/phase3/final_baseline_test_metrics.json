@@ -1,0 +1,70 @@
+{
+  "selected_model": "Logistic Regression",
+  "evaluation_split": "EduRABSA official dev_test pool",
+  "accuracy": 0.7290916366546618,
+  "macro_precision": 0.692580579176529,
+  "macro_recall": 0.7011983810990849,
+  "macro_f1": 0.6940318932796168,
+  "weighted_precision": 0.7493120996974225,
+  "weighted_recall": 0.7290916366546618,
+  "weighted_f1": 0.7367329058039878,
+  "confusion_matrix_labels": [
+    "Negative",
+    "Neutral",
+    "Positive"
+  ],
+  "confusion_matrix": [
+    [
+      464,
+      135,
+      49
+    ],
+    [
+      111,
+      322,
+      105
+    ],
+    [
+      63,
+      214,
+      1036
+    ]
+  ],
+  "classification_report": {
+    "Negative": {
+      "precision": 0.7272727272727273,
+      "recall": 0.7160493827160493,
+      "f1-score": 0.7216174183514774,
+      "support": 648.0
+    },
+    "Neutral": {
+      "precision": 0.4798807749627422,
+      "recall": 0.5985130111524164,
+      "f1-score": 0.532671629445823,
+      "support": 538.0
+    },
+    "Positive": {
+      "precision": 0.8705882352941177,
+      "recall": 0.789032749428789,
+      "f1-score": 0.8278066320415501,
+      "support": 1313.0
+    },
+    "accuracy": 0.7290916366546618,
+    "macro avg": {
+      "precision": 0.692580579176529,
+      "recall": 0.7011983810990849,
+      "f1-score": 0.6940318932796168,
+      "support": 2499.0
+    },
+    "weighted avg": {
+      "precision": 0.7493120996974225,
+      "recall": 0.7290916366546618,
+      "f1-score": 0.7367329058039878,
+      "support": 2499.0
+    }
+  },
+  "train_pool_before_duplicate_filter": 3999,
+  "cross_split_duplicates_removed_from_training": 9,
+  "final_train_pool": 3990,
+  "dev_test_size": 2499
+}

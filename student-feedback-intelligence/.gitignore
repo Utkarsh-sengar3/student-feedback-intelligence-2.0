@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data
+data/raw/*
+data/processed/*
+data/external/*
+!data/raw/edurabsa/
+!data/raw/edurabsa/.gitkeep
+
+# Model artifacts
+models/**/*.pkl
+models/**/*.joblib
+models/**/*.bin
+models/**/*.pt
+models/**/*.pth
+models/**/*.safetensors
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs / caches
+*.log
+.cache/
+.pytest_cache/
+
+# Frontend
+node_modules/
+.next/
+out/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

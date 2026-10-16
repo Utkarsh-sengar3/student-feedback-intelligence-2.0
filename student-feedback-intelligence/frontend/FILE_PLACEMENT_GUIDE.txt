@@ -1,0 +1,17 @@
+STUDENT FEEDBACK INTELLIGENCE — FRONTEND INSTALL
+
+1. Extract this ZIP.
+2. Copy the CONTENTS of the inner student_feedback_website folder into:
+   student-feedback-intelligence\frontend\
+   (Create frontend if it does not exist.)
+3. Do NOT copy frontend/src into the project root. Keep App.jsx and styles.css inside frontend/src.
+4. Start the FastAPI backend in a separate terminal using your project's existing command.
+5. In a new PowerShell terminal run:
+   cd "C:\Users\utkar\OneDrive\Desktop\student-feedback-intelligence-architecture\student-feedback-intelligence\frontend"
+   npm install
+   Copy-Item .env.example .env
+   npm run dev
+6. Open http://localhost:3000
+7. Test a production build with: npm run build
+
+If npm run build reports another error, send the complete terminal output. The frontend API routes may also need matching to the routes listed at http://127.0.0.1:8000/docs.

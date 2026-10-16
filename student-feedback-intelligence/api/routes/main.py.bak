@@ -1,0 +1,63 @@
+from fastapi import FastAPI
+
+from api.routes import (
+    insights,
+    search
+)
+
+
+app = FastAPI(
+
+    title="AI-Based Student Feedback Intelligence API",
+
+    description=(
+        "AI/ML backend for student feedback "
+        "sentiment, insights and semantic search."
+    ),
+
+    version="1.0.0"
+)
+
+
+app.include_router(
+    insights.router
+)
+
+app.include_router(
+    search.router
+)
+
+
+@app.get("/")
+def root():
+
+    return {
+
+        "project":
+            "AI-Based Student Feedback Intelligence",
+
+        "status":
+            "running",
+
+        "phase":
+            "20",
+
+        "services": [
+
+            "Insight Intelligence",
+
+            "Semantic Search",
+
+        ],
+    }
+
+
+@app.get("/health")
+def health():
+
+    return {
+
+        "status":
+            "healthy"
+
+    }

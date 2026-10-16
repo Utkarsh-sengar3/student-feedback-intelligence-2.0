@@ -1,0 +1,19 @@
+project:
+  name: "AI-Based Student Feedback Sentiment Intelligence"
+  seed: 42
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  external_dir: "data/external"
+  edurabsa_dir: "data/raw/edurabsa"
+
+models:
+  directory: "models"
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+
+# Dataset-specific settings must NOT be added until EduRABSA
+# has been inspected and its actual schema is known.

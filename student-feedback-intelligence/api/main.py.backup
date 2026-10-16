@@ -1,0 +1,151 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from api.services.feedback_service import (
+    FeedbackService,
+)
+
+from api.routes.search import router as search_router
+from api.routes.insights import router as insights_router
+
+
+app = FastAPI(
+    title="AI-Based Student Feedback Intelligence",
+    description=(
+        "Production API for student feedback "
+        "sentiment intelligence, semantic search, "
+        "insights and evidence-grounded analysis."
+    ),
+    version="2.0.0",
+)
+
+
+# ============================================================
+# CORS
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# SERVICES
+# ============================================================
+
+feedback_service = FeedbackService()
+
+
+# ============================================================
+# HEALTH
+# ============================================================
+
+@app.get(
+    "/health",
+    tags=["System"],
+)
+def health():
+
+    return {
+        "status": "ok",
+        "service": (
+            "student-feedback-intelligence-api"
+        ),
+        "version": "2.0.0",
+    }
+
+
+# ============================================================
+# STATUS
+# ============================================================
+
+@app.get(
+    "/api/v1/status",
+    tags=["System"],
+)
+def status():
+
+    return {
+        "status": "ready",
+        "service": (
+            "student-feedback-intelligence-api"
+        ),
+        "models": feedback_service.status(),
+    }
+
+
+# ============================================================
+# FEEDBACK ANALYSIS
+# ============================================================
+
+@app.post(
+    "/api/v1/analyze",
+    tags=["Feedback"],
+)
+def analyze_feedback(
+    payload: dict,
+):
+
+    text = payload.get(
+        "text",
+        "",
+    )
+
+    if not isinstance(
+        text,
+        str,
+    ) or not text.strip():
+
+        return {
+            "success": False,
+            "error": (
+                "Field 'text' is required."
+            ),
+        }
+
+    result = feedback_service.analyze(
+        text
+    )
+
+    return {
+        "success": True,
+        "data": result,
+    }
+
+
+# ============================================================
+# ROUTERS
+# ============================================================
+
+app.include_router(
+    search_router
+)
+
+app.include_router(
+    insights_router,
+)
+
+
+# ============================================================
+# ROOT
+# ============================================================
+
+@app.get(
+    "/",
+    tags=["System"],
+)
+def root():
+
+    return {
+        "name": (
+            "AI-Based Student Feedback "
+            "Sentiment Intelligence"
+        ),
+        "version": "2.0.0",
+        "status": "running",
+        "documentation": "/docs",
+    }

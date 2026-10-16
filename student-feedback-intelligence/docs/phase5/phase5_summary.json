@@ -1,0 +1,21 @@
+{
+  "phase": 5,
+  "methodology_note": "EduRABSA has sentiment/aspect/category annotations but no ground-truth severity or priority labels. Severity and priority here are transparent derived heuristics, not supervised predictions.",
+  "severity_rules": {
+    "High": "Negative + explicit high-severity signal",
+    "Medium": "Negative without high-severity signal",
+    "Low": "Neutral or Positive"
+  },
+  "priority_formula": "negative_rate * log1p(negative_mentions) * severity adjustment",
+  "annotation_count": 27037,
+  "negative_annotation_count": 8700,
+  "severity_distribution": {
+    "Low": 18337,
+    "Medium": 8496,
+    "High": 204
+  },
+  "high_severity_negative_count": 204,
+  "category_count": 60,
+  "aspect_category_count": 8082,
+  "review_count": 6398
+}

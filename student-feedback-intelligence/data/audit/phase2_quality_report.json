@@ -1,0 +1,28 @@
+{
+  "total_reviews": 6500,
+  "train_validation": 4000,
+  "dev_test": 2500,
+  "total_annotations": 27037,
+  "empty_texts": 0,
+  "missing_text": 0,
+  "within_split_duplicate_rows": 16,
+  "cross_split_duplicate_rows": 18,
+  "cross_split_duplicate_groups": 8,
+  "missing_annotation_category": 0,
+  "missing_annotation_sentiment": 0,
+  "missing_opinion": 0,
+  "null_aspect": 0,
+  "text_length_chars": {
+    "min": 2,
+    "median": 192.0,
+    "mean": 220.73415384615384,
+    "max": 2513
+  },
+  "token_count": {
+    "min": 0,
+    "median": 35.0,
+    "mean": 40.51723076923077,
+    "max": 446
+  },
+  "policy": "Do not silently delete cross-split duplicate texts; retain official split labels and flag duplicates for leakage-safe evaluation."
+}

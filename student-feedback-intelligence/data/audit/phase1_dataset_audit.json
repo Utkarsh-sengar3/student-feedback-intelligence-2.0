@@ -1,0 +1,60 @@
+{
+  "dataset": "EduRABSA",
+  "canonical_source": "ASQE raw merged annotation JSON files",
+  "records": {
+    "train_validation_reviews": 4000,
+    "dev_test_reviews": 2500,
+    "total_reviews": 6500,
+    "total_annotation_quadruplets": 27037
+  },
+  "fields": {
+    "review_fields": [
+      "review_id",
+      "original_id",
+      "text",
+      "domain",
+      "overall_sentiment",
+      "split",
+      "text_sha256"
+    ],
+    "annotation_fields": [
+      "review_id",
+      "original_id",
+      "annotation_id",
+      "aspect",
+      "opinion",
+      "category",
+      "sentiment",
+      "split",
+      "domain"
+    ]
+  },
+  "leakage_audit": {
+    "original_id_overlap_count": 0,
+    "review_id_overlap_count": 0,
+    "exact_text_overlap_count": 6,
+    "normalized_text_overlap_count": 8,
+    "cross_split_duplicate_text_review_rows": 18,
+    "status": "REVIEW_REQUIRED: duplicate text exists across split boundary; do not claim leakage-free until these 8 normalized duplicate pairs are resolved."
+  },
+  "domains": {
+    "teacher review": 3000,
+    "course review": 3000,
+    "university review": 500
+  },
+  "overall_sentiment": {
+    "Pos": 3405,
+    "Neg": 1602,
+    "Neu": 1491,
+    "": 2
+  },
+  "annotation_sentiment": {
+    "Positive": 15575,
+    "Negative": 8700,
+    "Neutral": 2762
+  },
+  "annotation_categories": 24,
+  "null_aspect_count": 0,
+  "null_opinion_count": 0,
+  "duplicate_normalized_text_groups_total": 14
+}

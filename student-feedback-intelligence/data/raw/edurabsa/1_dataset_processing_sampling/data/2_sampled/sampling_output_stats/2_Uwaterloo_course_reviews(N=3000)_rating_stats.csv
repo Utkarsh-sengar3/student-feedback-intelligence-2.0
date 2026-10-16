@@ -1,0 +1,5 @@
+df_name,rating_cat,rating_bin,count,%,df_name,rating_cat,rating_bin,count,%
+source_df,Neg,[0.0],4811.0,0.324848075624578,sample_df,Neg,[0.0],979.0,0.3263333333333333
+source_df,Pos,[1.0],9778.0,0.6602295746117488,sample_df,Pos,[1.0],1976.0,0.6586666666666666
+source_df,[NA],[NA],221.0,0.014922349763673194,sample_df,[NA],[NA],45.0,0.015
+,,,14810.0,1.0,,,,3000.0,0.9999999999999999

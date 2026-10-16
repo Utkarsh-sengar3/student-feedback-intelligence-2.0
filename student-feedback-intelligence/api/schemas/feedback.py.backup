@@ -1,0 +1,80 @@
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+
+class FeedbackRequest(BaseModel):
+    text: str = Field(
+        ...,
+        min_length=3,
+        max_length=5000,
+        description="Student feedback text",
+    )
+
+
+class EvidenceItem(BaseModel):
+    review_id: Any
+    similarity_score: Optional[float] = None
+    domain: Optional[str] = None
+    sentiment: Optional[str] = None
+    text: str
+
+
+class FeedbackResponse(BaseModel):
+    text: str
+
+    sentiment: Optional[str] = None
+    sentiment_confidence: Optional[float] = None
+
+    # Backward-compatible primary category
+    category: Optional[str] = None
+
+    # Multilabel category predictions
+    categories: List[str] = Field(default_factory=list)
+
+    aspect: Optional[str] = None
+
+    severity: Optional[str] = None
+
+    priority_level: Optional[str] = None
+    priority_score: Optional[float] = None
+
+    recommendation: Optional[str] = None
+
+    evidence: List[EvidenceItem] = Field(default_factory=list)
+
+
+class SearchResult(BaseModel):
+    review_id: Any
+    similarity_score: float
+    domain: Optional[str] = None
+    sentiment: Optional[str] = None
+    text: str
+
+
+class SearchResponse(BaseModel):
+    query: str
+    count: int
+    results: List[SearchResult]
+
+
+class AssistantRequest(BaseModel):
+    question: str = Field(
+        ...,
+        min_length=3,
+        max_length=2000,
+    )
+
+    top_k: int = Field(
+        default=8,
+        ge=1,
+        le=20,
+    )
+
+
+class AssistantResponse(BaseModel):
+    question: str
+    answer: str
+    retrieved_count: int
+    sentiment_distribution: Dict[str, int]
+    evidence: List[EvidenceItem]

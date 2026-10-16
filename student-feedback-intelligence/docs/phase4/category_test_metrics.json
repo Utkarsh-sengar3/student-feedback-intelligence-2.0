@@ -1,0 +1,170 @@
+{
+  "model": "TF-IDF + Logistic Regression",
+  "input": "aspect + review text",
+  "accuracy": 0.44604726202904055,
+  "macro_precision": 0.3909297633464288,
+  "macro_recall": 0.3900139157072376,
+  "macro_f1": 0.3732323560356156,
+  "weighted_precision": 0.4688284577484419,
+  "weighted_recall": 0.44604726202904055,
+  "weighted_f1": 0.4462572688449095,
+  "classification_report": {
+    "Course - Assessment": {
+      "precision": 0.5514365152919369,
+      "recall": 0.6432432432432432,
+      "f1-score": 0.593812375249501,
+      "support": 925.0
+    },
+    "Course - Content": {
+      "precision": 0.492,
+      "recall": 0.5616438356164384,
+      "f1-score": 0.5245202558635395,
+      "support": 876.0
+    },
+    "Course - Course materials": {
+      "precision": 0.40471092077087795,
+      "recall": 0.5869565217391305,
+      "f1-score": 0.4790874524714829,
+      "support": 322.0
+    },
+    "Course - Difficulty": {
+      "precision": 0.41957255343082117,
+      "recall": 0.44037780401416765,
+      "f1-score": 0.42972350230414746,
+      "support": 847.0
+    },
+    "Course - Learning activity": {
+      "precision": 0.3981818181818182,
+      "recall": 0.41954022988505746,
+      "f1-score": 0.4085820895522388,
+      "support": 522.0
+    },
+    "Course - Overall": {
+      "precision": 0.6239707227813358,
+      "recall": 0.4463350785340314,
+      "f1-score": 0.5204120564669973,
+      "support": 1528.0
+    },
+    "Course - Technology & tools": {
+      "precision": 0.16666666666666666,
+      "recall": 0.025,
+      "f1-score": 0.043478260869565216,
+      "support": 40.0
+    },
+    "Course - Workload": {
+      "precision": 0.3117505995203837,
+      "recall": 0.4727272727272727,
+      "f1-score": 0.37572254335260113,
+      "support": 275.0
+    },
+    "Staff - Attitude": {
+      "precision": 0.28390596745027125,
+      "recall": 0.26791808873720135,
+      "f1-score": 0.27568042142230026,
+      "support": 586.0
+    },
+    "Staff - Helpfulness": {
+      "precision": 0.23174157303370788,
+      "recall": 0.5076923076923077,
+      "f1-score": 0.31822565091610416,
+      "support": 325.0
+    },
+    "Staff - Knowledge & skills": {
+      "precision": 0.1950354609929078,
+      "recall": 0.3873239436619718,
+      "f1-score": 0.25943396226415094,
+      "support": 142.0
+    },
+    "Staff - Overall": {
+      "precision": 0.4426229508196721,
+      "recall": 0.43654001616814875,
+      "f1-score": 0.43956043956043955,
+      "support": 1237.0
+    },
+    "Staff - Personal traits": {
+      "precision": 0.2639175257731959,
+      "recall": 0.3333333333333333,
+      "f1-score": 0.2945914844649022,
+      "support": 384.0
+    },
+    "Staff - Teaching": {
+      "precision": 0.5130801687763713,
+      "recall": 0.31163505894413124,
+      "f1-score": 0.3877551020408163,
+      "support": 1951.0
+    },
+    "University - Campus & facilities": {
+      "precision": 0.6147186147186147,
+      "recall": 0.7553191489361702,
+      "f1-score": 0.6778042959427207,
+      "support": 188.0
+    },
+    "University - Cost": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 8.0
+    },
+    "University - Culture & diversity": {
+      "precision": 0.46153846153846156,
+      "recall": 0.3157894736842105,
+      "f1-score": 0.375,
+      "support": 19.0
+    },
+    "University - Information & services": {
+      "precision": 0.4696969696969697,
+      "recall": 0.49206349206349204,
+      "f1-score": 0.4806201550387597,
+      "support": 63.0
+    },
+    "University - Opportunities": {
+      "precision": 0.8333333333333334,
+      "recall": 0.45454545454545453,
+      "f1-score": 0.5882352941176471,
+      "support": 11.0
+    },
+    "University - Overall": {
+      "precision": 0.6666666666666666,
+      "recall": 0.7283236994219653,
+      "f1-score": 0.6961325966850829,
+      "support": 173.0
+    },
+    "University - Programme": {
+      "precision": 0.42857142857142855,
+      "recall": 0.08571428571428572,
+      "f1-score": 0.14285714285714285,
+      "support": 35.0
+    },
+    "University - Social engagement & activities": {
+      "precision": 0.6091954022988506,
+      "recall": 0.6883116883116883,
+      "f1-score": 0.6463414634146342,
+      "support": 77.0
+    },
+    "University - Staff": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 2.0
+    },
+    "University - Technology & tools": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "accuracy": 0.44604726202904055,
+    "macro avg": {
+      "precision": 0.3909297633464288,
+      "recall": 0.3900139157072376,
+      "f1-score": 0.3732323560356156,
+      "support": 10537.0
+    },
+    "weighted avg": {
+      "precision": 0.4688284577484419,
+      "recall": 0.44604726202904055,
+      "f1-score": 0.4462572688449095,
+      "support": 10537.0
+    }
+  }
+}

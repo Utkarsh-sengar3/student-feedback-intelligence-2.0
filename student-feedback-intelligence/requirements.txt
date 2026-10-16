@@ -1,0 +1,16 @@
+# Core data science
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+jupyter
+notebook
+
+# Development/testing
+pytest
+
+# API — to be expanded when backend implementation begins
+fastapi
+uvicorn
+pydantic
