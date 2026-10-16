@@ -56,3 +56,6 @@ out/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local development backups
+*.bak

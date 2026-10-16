@@ -45,9 +45,91 @@ class FeedbackService:
 
         self.retriever = None
 
-        self._load_models()
+        # Lazy-loading state
+        self._models_load_attempted = False
+        self._retriever_load_attempted = False
+
         self._load_phase16_data()
-        self._load_retriever()
+    def _ensure_sentiment_model_loaded(self):
+        """Load only the sentiment model when sentiment prediction needs it."""
+        if self.sentiment_model is not None:
+            return
+
+        if not SENTIMENT_MODEL_PATH.exists():
+            print(
+                f"WARNING: Sentiment model not found: "
+                f"{SENTIMENT_MODEL_PATH}"
+            )
+            return
+
+        try:
+            from transformers import (
+                AutoTokenizer,
+                AutoModelForSequenceClassification,
+            )
+
+            self.sentiment_tokenizer = AutoTokenizer.from_pretrained(
+                str(SENTIMENT_MODEL_PATH),
+                local_files_only=True,
+            )
+
+            self.sentiment_model = (
+                AutoModelForSequenceClassification.from_pretrained(
+                    str(SENTIMENT_MODEL_PATH),
+                    local_files_only=True,
+                )
+            )
+
+            self.sentiment_model.eval()
+            print("Sentiment model loaded.")
+
+        except Exception as exc:
+            self.sentiment_model = None
+            self.sentiment_tokenizer = None
+            print(f"WARNING: Failed to load sentiment model: {exc}")
+
+    def _ensure_category_model_loaded(self):
+        """Load only the category classifier when category prediction needs it."""
+        if (
+            self.category_model is not None
+            and self.label_binarizer is not None
+        ):
+            return
+
+        if not CATEGORY_MODEL_PATH.exists():
+            print(
+                f"WARNING: Category model not found: "
+                f"{CATEGORY_MODEL_PATH}"
+            )
+            return
+
+        try:
+            bundle = joblib.load(CATEGORY_MODEL_PATH)
+
+            if not isinstance(bundle, dict):
+                print(
+                    "WARNING: Phase 12 artifact is not a dictionary."
+                )
+                return
+
+            category_model = bundle.get("model")
+            label_binarizer = bundle.get("label_binarizer")
+
+            if category_model is None or label_binarizer is None:
+                print(
+                    "WARNING: Category model artifact is incomplete."
+                )
+                return
+
+            self.category_bundle = bundle
+            self.category_model = category_model
+            self.label_binarizer = label_binarizer
+            self.categories = list(bundle.get("categories", []))
+
+            print("Category multilabel model loaded.")
+
+        except Exception as exc:
+            print(f"WARNING: Failed to load category model: {exc}")
 
     # ============================================================
     # MODEL LOADING
@@ -157,6 +239,15 @@ class FeedbackService:
     # PHASE 16 DATA
     # ============================================================
 
+    def _ensure_retriever_loaded(self):
+        """Initialize semantic retrieval only when evidence is needed."""
+
+        if self._retriever_load_attempted:
+            return
+
+        self._retriever_load_attempted = True
+
+        self._load_retriever()
     def _load_phase16_data(self):
 
         # --------------------------------------------------------
@@ -294,7 +385,9 @@ class FeedbackService:
     def _predict_sentiment(self, text):
 
         if self.sentiment_model is None:
+            self._ensure_sentiment_model_loaded()
 
+        if self.sentiment_model is None:
             return "Unavailable", None
 
         import torch
@@ -370,7 +463,12 @@ class FeedbackService:
             self.category_model is None
             or self.label_binarizer is None
         ):
+            self._ensure_category_model_loaded()
 
+        if (
+            self.category_model is None
+            or self.label_binarizer is None
+        ):
             return []
 
         try:
@@ -1497,6 +1595,9 @@ class FeedbackService:
         so we use those rows directly instead of re-indexing
         self.retriever.metadata.
         """
+
+        if self.retriever is None:
+            self._ensure_retriever_loaded()
 
         if self.retriever is None:
             return []
