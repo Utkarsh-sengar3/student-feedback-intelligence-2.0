@@ -1,429 +1,163 @@
 """
-Production-ready semantic retrieval component.
-
-Used by:
-- Phase 19 RAG
-- FastAPI
-- Dashboard
-- AI Assistant
-
-Retrieval pipeline:
-
-Query
-  ↓
-SentenceTransformer embedding
-  ↓
-Cosine similarity
-  ↓
-Optional domain filter
-  ↓
-Optional sentiment filter
-  ↓
-Optional similarity threshold
-  ↓
-Top-K results
+Semantic retriever using sentence-transformers and precomputed numpy embeddings.
 """
+from __future__ import annotations
 
+import threading
 from pathlib import Path
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 
 
 class SemanticRetriever:
+    """
+    Loads precomputed review embeddings and supports cosine-similarity search.
+    """
 
     def __init__(
         self,
-        embeddings_path,
-        metadata_path,
-        model_name="all-MiniLM-L6-v2",
+        embeddings_path: Union[str, Path],
+        metadata_path: Union[str, Path],
+        model_name: str = "all-MiniLM-L6-v2",
     ):
-        self.embeddings_path = Path(embeddings_path)
-        self.metadata_path = Path(metadata_path)
-        self.model_name = model_name
+        self._embeddings_path = Path(embeddings_path)
+        self._metadata_path = Path(metadata_path)
+        self._model_name = model_name
+        self._model = None
+        self._model_lock = threading.Lock()
 
-        if not self.embeddings_path.exists():
+        if not self._embeddings_path.exists():
             raise FileNotFoundError(
-                f"Embeddings file not found: "
-                f"{self.embeddings_path}"
+                f"Embeddings file not found: {self._embeddings_path}. "
+                "Run the Phase 17 embedding script to generate it."
             )
-
-        if not self.metadata_path.exists():
+        if not self._metadata_path.exists():
             raise FileNotFoundError(
-                f"Metadata file not found: "
-                f"{self.metadata_path}"
+                f"Metadata file not found: {self._metadata_path}."
             )
 
-        print(
-            f"Loading retrieval embeddings: "
-            f"{self.embeddings_path}"
-        )
+        self._embeddings: np.ndarray = np.load(
+            str(self._embeddings_path), allow_pickle=False
+        ).astype(np.float32)
 
-        self.embeddings = np.load(
-            self.embeddings_path
-        ).astype("float32")
+        # L2-normalize for cosine similarity via dot product
+        norms = np.linalg.norm(self._embeddings, axis=1, keepdims=True)
+        norms = np.where(norms == 0, 1.0, norms)
+        self._embeddings = self._embeddings / norms
 
-        print(
-            f"Loading retrieval metadata: "
-            f"{self.metadata_path}"
-        )
+        self.metadata: pd.DataFrame = pd.read_csv(str(self._metadata_path))
+        # Ensure row_index column
+        if "row_index" not in self.metadata.columns:
+            self.metadata["row_index"] = range(len(self.metadata))
+        self.metadata["row_index"] = self.metadata["row_index"].astype(int)
+        self.metadata["text"] = self.metadata.get("text", pd.Series("", index=self.metadata.index)).fillna("").astype(str)
+        self.metadata["domain"] = self.metadata.get("domain", pd.Series("unknown", index=self.metadata.index)).fillna("unknown").astype(str)
+        self.metadata["overall_sentiment"] = self.metadata.get("overall_sentiment", pd.Series("unknown", index=self.metadata.index)).fillna("unknown").astype(str)
 
-        self.metadata = pd.read_csv(
-            self.metadata_path
-        )
+    def _get_model(self):
+        """Lazy-load the sentence transformer model."""
+        if self._model is None:
+            with self._model_lock:
+                if self._model is None:
+                    from sentence_transformers import SentenceTransformer
+                    self._model = SentenceTransformer(self._model_name)
+        return self._model
 
-        if len(self.embeddings) != len(self.metadata):
-            raise ValueError(
-                "Embeddings and metadata counts differ: "
-                f"{len(self.embeddings)} vs "
-                f"{len(self.metadata)}"
-            )
-
-        required_columns = {
-            "review_id",
-            "text",
-        }
-
-        missing = (
-            required_columns
-            - set(self.metadata.columns)
-        )
-
-        if missing:
-            raise ValueError(
-                "Metadata is missing required columns: "
-                f"{sorted(missing)}"
-            )
-
-        if "domain" not in self.metadata.columns:
-            self.metadata["domain"] = "Unknown"
-
-        if "overall_sentiment" not in self.metadata.columns:
-            self.metadata["overall_sentiment"] = "Unknown"
-        else:
-            self.metadata["overall_sentiment"] = (
-            self.metadata["overall_sentiment"]
-            .fillna("Unknown")
-            .astype(str)
-            .str.strip()
-        )
-            
-
-        MODEL_NAME = "all-MiniLM-L6-v2"
-
-        self.model = SentenceTransformer(
-            MODEL_NAME,
-            local_files_only=True,
-        )
-
-        print(
-            f"Retriever ready: "
-            f"{len(self.metadata):,} reviews"
-        )
-
-    @staticmethod
-    def _normalize_sentiment(value):
-        """
-        Normalize common sentiment labels.
-        """
-
-        value = str(value).strip().lower()
-
-        mapping = {
-            "positive": "positive",
-            "pos": "positive",
-            "negative": "negative",
-            "neg": "negative",
-            "neutral": "neutral",
-            "neu": "neutral",
-        }
-
-        return mapping.get(value, value)
+    def _encode_query(self, query: str) -> np.ndarray:
+        model = self._get_model()
+        vec = model.encode([query], convert_to_numpy=True, normalize_embeddings=True)
+        return vec[0].astype(np.float32)
 
     def search(
         self,
-        query,
-        top_k=8,
-        domain=None,
-        sentiment=None,
-        min_similarity=None,
-    ):
+        query: str,
+        top_k: int = 10,
+        domain: Optional[str] = None,
+        sentiment: Optional[str] = None,
+    ) -> pd.DataFrame:
         """
-        Perform semantic retrieval.
+        Cosine-similarity search over precomputed embeddings.
 
-        Parameters
-        ----------
-        query : str
-            User search query.
-
-        top_k : int
-            Maximum number of results.
-
-        domain : str, optional
-            Filter by review domain.
-
-        sentiment : str, optional
-            Filter by sentiment.
-
-        min_similarity : float, optional
-            Minimum cosine similarity.
-
-        Returns
-        -------
-        pandas.DataFrame
-            Ranked retrieval results.
+        Returns a DataFrame with columns:
+            row_index, similarity_score, text, domain, overall_sentiment
         """
+        query_vec = self._encode_query(query)
 
-        if not isinstance(query, str):
-            raise TypeError(
-                "Query must be a string."
-            )
+        # Cosine similarity via dot product (embeddings are L2-normalized)
+        scores: np.ndarray = self._embeddings @ query_vec
 
-        query = query.strip()
-
-        if not query:
-            raise ValueError(
-                "Query cannot be empty."
-            )
-
-        if not isinstance(top_k, int):
-            raise TypeError(
-                "top_k must be an integer."
-            )
-
-        if top_k < 1:
-            raise ValueError(
-                "top_k must be at least 1."
-            )
-
-        if top_k > 100:
-            raise ValueError(
-                "top_k cannot exceed 100."
-            )
-
-        if min_similarity is not None:
-
-            if not -1.0 <= min_similarity <= 1.0:
-                raise ValueError(
-                    "min_similarity must be between "
-                    "-1.0 and 1.0."
-                )
-
-        # --------------------------------------------------
-        # Query embedding
-        # --------------------------------------------------
-
-        query_vector = self.model.encode(
-            [query],
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-        )[0].astype("float32")
-
-        # --------------------------------------------------
-        # Cosine similarity
-        # --------------------------------------------------
-
-        scores = (
-            self.embeddings
-            @ query_vector
+        # Build candidate DataFrame
+        n = len(scores)
+        df = pd.DataFrame(
+            {
+                "row_index": np.arange(n),
+                "similarity_score": scores,
+            }
         )
 
-        # --------------------------------------------------
-        # Metadata filtering
-        # --------------------------------------------------
+        # Merge with metadata for filtering
+        meta = self.metadata[["row_index", "text", "domain", "overall_sentiment"]].copy()
+        df = df.merge(meta, on="row_index", how="left")
 
-        mask = np.ones(
-            len(self.metadata),
-            dtype=bool,
-        )
+        # Apply filters
+        if domain and domain.lower() not in ("all", "none", ""):
+            df = df[df["domain"].str.lower() == domain.strip().lower()]
 
-        if domain:
+        if sentiment and sentiment.lower() not in ("all", "none", ""):
+            df = df[df["overall_sentiment"].str.lower() == sentiment.strip().lower()]
 
-            mask &= (
-                self.metadata["domain"]
-                .astype(str)
-                .str.lower()
-                .eq(str(domain).strip().lower())
-                .to_numpy()
-            )
+        # Sort by similarity descending
+        df = df.sort_values("similarity_score", ascending=False)
 
-        if sentiment:
+        return df.head(top_k).reset_index(drop=True)
 
-            requested_sentiment = (
-                self._normalize_sentiment(
-                    sentiment
-                )
-            )
+    def stats(self) -> dict:
+        """Return statistics about the index."""
+        n_embeddings = len(self._embeddings)
+        embedding_dim = self._embeddings.shape[1] if len(self._embeddings.shape) > 1 else 0
 
-            mask &= (
-                self.metadata[
-                    "overall_sentiment"
-                ]
-                .map(self._normalize_sentiment)
-                .eq(requested_sentiment)
-                .to_numpy()
-            )
-
-        # --------------------------------------------------
-        # Similarity threshold
-        # --------------------------------------------------
-
-        if min_similarity is not None:
-
-            mask &= (
-                scores >= min_similarity
-            )
-
-        candidate_indices = np.where(mask)[0]
-
-        if len(candidate_indices) == 0:
-
-            return pd.DataFrame(
-                columns=[
-                    *self.metadata.columns,
-                    "similarity_score",
-                ]
-            )
-
-        candidate_scores = (
-            scores[candidate_indices]
-        )
-
-        k = min(
-            top_k,
-            len(candidate_indices),
-        )
-
-        # Efficient top-k selection
-        top_positions = np.argpartition(
-            -candidate_scores,
-            k - 1,
-        )[:k]
-
-        top_positions = top_positions[
-            np.argsort(
-                -candidate_scores[
-                    top_positions
-                ]
-            )
-        ]
-
-        indices = candidate_indices[
-            top_positions
-        ]
-
-        # --------------------------------------------------
-        # Build result
-        # --------------------------------------------------
-
-        results = (
-            self.metadata
-            .iloc[indices]
-            .copy()
-            .reset_index(drop=True)
-        )
-
-        results.insert(
-            1,
-            "similarity_score",
-            scores[indices],
-        )
-
-        return results
-
-    def search_negative(
-        self,
-        query,
-        top_k=8,
-        domain=None,
-        min_similarity=None,
-    ):
-        """
-        Convenience method for negative feedback retrieval.
-        """
-
-        return self.search(
-            query=query,
-            top_k=top_k,
-            domain=domain,
-            sentiment="Negative",
-            min_similarity=min_similarity,
-        )
-
-    def search_positive(
-        self,
-        query,
-        top_k=8,
-        domain=None,
-        min_similarity=None,
-    ):
-        """
-        Convenience method for positive feedback retrieval.
-        """
-
-        return self.search(
-            query=query,
-            top_k=top_k,
-            domain=domain,
-            sentiment="Positive",
-            min_similarity=min_similarity,
-        )
-
-    def stats(self):
-        """
-        Return basic index statistics.
-        """
+        domains = list(self.metadata["domain"].dropna().unique())
+        sentiments = list(self.metadata["overall_sentiment"].dropna().unique())
 
         return {
-            "reviews_indexed": int(
-                len(self.metadata)
-            ),
-            "embedding_dimension": int(
-                self.embeddings.shape[1]
-            ),
-            "model": self.model_name,
-            "domains": sorted(
-                self.metadata[
-                    "domain"
-                ]
-                .astype(str)
-                .unique()
-                .tolist()
-            ),
-            "sentiments": sorted(
-                self.metadata[
-                    "overall_sentiment"
-                ]
-                .astype(str)
-                .unique()
-                .tolist()
-            ),
+            "total_reviews": n_embeddings,
+            "embedding_dimension": int(embedding_dim),
+            "model": self._model_name,
+            "domains": domains,
+            "sentiments": sentiments,
         }
 
 
-_SHARED_RETRIEVER = None
+# Module-level singleton
+_retriever: Optional[SemanticRetriever] = None
+_retriever_lock = threading.Lock()
+_retriever_key: Optional[tuple] = None
 
 
 def get_shared_retriever(
-    embeddings_path=None,
-    metadata_path=None,
-    model_name="all-MiniLM-L6-v2",
+    embeddings_path: Union[str, Path],
+    metadata_path: Union[str, Path],
+    model_name: str = "all-MiniLM-L6-v2",
 ) -> SemanticRetriever:
     """
-    Return a shared singleton SemanticRetriever instance.
-    Prevents duplicate loading of SentenceTransformer and review embeddings in memory.
+    Return a module-level singleton SemanticRetriever.
+    Creates the retriever on first call; subsequent calls with the same
+    arguments return the cached instance.
     """
-    global _SHARED_RETRIEVER
-    if _SHARED_RETRIEVER is None:
-        if embeddings_path is None or metadata_path is None:
-            root = Path(__file__).resolve().parents[2]
-            phase17 = root / "data" / "processed" / "edurabsa" / "phase17"
-            embeddings_path = phase17 / "review_embeddings.npy"
-            metadata_path = phase17 / "review_metadata.csv"
-        _SHARED_RETRIEVER = SemanticRetriever(
-            embeddings_path=embeddings_path,
-            metadata_path=metadata_path,
-            model_name=model_name,
-        )
-    return _SHARED_RETRIEVER
+    global _retriever, _retriever_key
+
+    key = (str(embeddings_path), str(metadata_path), model_name)
+
+    if _retriever is None or _retriever_key != key:
+        with _retriever_lock:
+            if _retriever is None or _retriever_key != key:
+                _retriever = SemanticRetriever(
+                    embeddings_path=embeddings_path,
+                    metadata_path=metadata_path,
+                    model_name=model_name,
+                )
+                _retriever_key = key
+
+    return _retriever
