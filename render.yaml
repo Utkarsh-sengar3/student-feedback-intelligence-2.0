@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     rootDir: student-feedback-intelligence
-    buildCommand: pip install -r requirements-api.txt
+    buildCommand: pip install -r requirements-api.txt && python -c "import os, urllib.request; os.makedirs('models/embeddings', exist_ok=True); print('Downloading ONNX model during build...'); urllib.request.urlretrieve('https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx', 'models/embeddings/model.onnx'); print('ONNX model ready!')"
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: CORS_ORIGINS

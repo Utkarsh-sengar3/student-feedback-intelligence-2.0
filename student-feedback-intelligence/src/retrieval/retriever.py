@@ -35,9 +35,17 @@ class OnnxQueryEncoder:
                 return
             import onnxruntime as ort
             from tokenizers import Tokenizer
-            from huggingface_hub import hf_hub_download
 
-            model_path = hf_hub_download(self.model_name, "onnx/model.onnx")
+            root = Path(__file__).resolve().parents[2]
+            local_model = root / "models" / "embeddings" / "model.onnx"
+            local_tok = root / "models" / "embeddings" / "tokenizer.json"
+
+            if local_model.exists():
+                model_path = str(local_model)
+            else:
+                from huggingface_hub import hf_hub_download
+                model_path = hf_hub_download(self.model_name, "onnx/model.onnx")
+
             opts = ort.SessionOptions()
             opts.intra_op_num_threads = 1
             opts.inter_op_num_threads = 1
@@ -47,7 +55,11 @@ class OnnxQueryEncoder:
                 sess_options=opts,
                 providers=["CPUExecutionProvider"],
             )
-            self._tokenizer = Tokenizer.from_pretrained(self.model_name)
+
+            if local_tok.exists():
+                self._tokenizer = Tokenizer.from_file(str(local_tok))
+            else:
+                self._tokenizer = Tokenizer.from_pretrained(self.model_name)
 
     def encode(self, query: str) -> np.ndarray:
         self._ensure_loaded()

@@ -59,8 +59,11 @@ class FeedbackService:
             self._ensure_sentiment_model_loaded()
             self._ensure_category_model_loaded()
             self._ensure_retriever_loaded()
+            if self.retriever is not None:
+                self.retriever._get_encoder()
             from api.routes.assistant import get_rag
-            get_rag()
+            rag = get_rag()
+            rag.ask("warmup", top_k=1)
             print("FeedbackService background warmup complete. All models ready.")
         except Exception as exc:
             print(f"FeedbackService warmup notice: {exc}")
