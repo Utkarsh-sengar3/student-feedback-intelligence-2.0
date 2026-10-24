@@ -28,7 +28,7 @@ app = FastAPI(
         "aspect extraction, actionable recommendations, semantic search, "
         "and evidence-grounded RAG assistance."
     ),
-    version="2.1.0",
+    version="2.1.1-onnx",
 )
 
 # ============================================================
@@ -108,7 +108,7 @@ def health():
     return {
         "status": "ok",
         "service": "student-feedback-intelligence-api",
-        "version": "2.1.0",
+        "version": "2.1.1-onnx",
     }
 
 
@@ -178,7 +178,7 @@ app.include_router(metrics_router)
 def root():
     return {
         "name": "AI-Based Student Feedback Sentiment Intelligence",
-        "version": "2.1.0",
+        "version": "2.1.1-onnx",
         "status": "running",
         "author": "Utkarsh Sengar",
         "documentation": "/docs",
