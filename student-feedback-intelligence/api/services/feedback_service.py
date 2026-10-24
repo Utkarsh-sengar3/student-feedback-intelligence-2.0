@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 from pathlib import Path
 
 import joblib
@@ -46,47 +47,65 @@ class FeedbackService:
         self.retriever = None
 
         # Lazy-loading state
+        self._load_lock = threading.Lock()
         self._models_load_attempted = False
         self._retriever_load_attempted = False
 
         self._load_phase16_data()
+
+    def warmup(self):
+        """Warm up all ML models in a background thread so inference is instant."""
+        try:
+            self._ensure_sentiment_model_loaded()
+            self._ensure_category_model_loaded()
+            self._ensure_retriever_loaded()
+            from api.routes.assistant import get_rag
+            get_rag()
+            print("FeedbackService background warmup complete. All models ready.")
+        except Exception as exc:
+            print(f"FeedbackService warmup notice: {exc}")
+
     def _ensure_sentiment_model_loaded(self):
         """Load only the sentiment model when sentiment prediction needs it."""
         if self.sentiment_model is not None:
             return
 
-        if not SENTIMENT_MODEL_PATH.exists():
-            print(
-                f"WARNING: Sentiment model not found: "
-                f"{SENTIMENT_MODEL_PATH}"
-            )
-            return
+        with self._load_lock:
+            if self.sentiment_model is not None:
+                return
 
-        try:
-            from transformers import (
-                AutoTokenizer,
-                AutoModelForSequenceClassification,
-            )
+            if not SENTIMENT_MODEL_PATH.exists():
+                print(
+                    f"WARNING: Sentiment model not found: "
+                    f"{SENTIMENT_MODEL_PATH}"
+                )
+                return
 
-            self.sentiment_tokenizer = AutoTokenizer.from_pretrained(
-                str(SENTIMENT_MODEL_PATH),
-                local_files_only=True,
-            )
+            try:
+                from transformers import (
+                    AutoTokenizer,
+                    AutoModelForSequenceClassification,
+                )
 
-            self.sentiment_model = (
-                AutoModelForSequenceClassification.from_pretrained(
+                self.sentiment_tokenizer = AutoTokenizer.from_pretrained(
                     str(SENTIMENT_MODEL_PATH),
                     local_files_only=True,
                 )
-            )
 
-            self.sentiment_model.eval()
-            print("Sentiment model loaded.")
+                self.sentiment_model = (
+                    AutoModelForSequenceClassification.from_pretrained(
+                        str(SENTIMENT_MODEL_PATH),
+                        local_files_only=True,
+                    )
+                )
 
-        except Exception as exc:
-            self.sentiment_model = None
-            self.sentiment_tokenizer = None
-            print(f"WARNING: Failed to load sentiment model: {exc}")
+                self.sentiment_model.eval()
+                print("Sentiment model loaded.")
+
+            except Exception as exc:
+                self.sentiment_model = None
+                self.sentiment_tokenizer = None
+                print(f"WARNING: Failed to load sentiment model: {exc}")
 
     def _ensure_category_model_loaded(self):
         """Load only the category classifier when category prediction needs it."""
@@ -96,40 +115,47 @@ class FeedbackService:
         ):
             return
 
-        if not CATEGORY_MODEL_PATH.exists():
-            print(
-                f"WARNING: Category model not found: "
-                f"{CATEGORY_MODEL_PATH}"
-            )
-            return
+        with self._load_lock:
+            if (
+                self.category_model is not None
+                and self.label_binarizer is not None
+            ):
+                return
 
-        try:
-            bundle = joblib.load(CATEGORY_MODEL_PATH)
-
-            if not isinstance(bundle, dict):
+            if not CATEGORY_MODEL_PATH.exists():
                 print(
-                    "WARNING: Phase 12 artifact is not a dictionary."
+                    f"WARNING: Category model not found: "
+                    f"{CATEGORY_MODEL_PATH}"
                 )
                 return
 
-            category_model = bundle.get("model")
-            label_binarizer = bundle.get("label_binarizer")
+            try:
+                bundle = joblib.load(CATEGORY_MODEL_PATH)
 
-            if category_model is None or label_binarizer is None:
-                print(
-                    "WARNING: Category model artifact is incomplete."
-                )
-                return
+                if not isinstance(bundle, dict):
+                    print(
+                        "WARNING: Phase 12 artifact is not a dictionary."
+                    )
+                    return
 
-            self.category_bundle = bundle
-            self.category_model = category_model
-            self.label_binarizer = label_binarizer
-            self.categories = list(bundle.get("categories", []))
+                category_model = bundle.get("model")
+                label_binarizer = bundle.get("label_binarizer")
 
-            print("Category multilabel model loaded.")
+                if category_model is None or label_binarizer is None:
+                    print(
+                        "WARNING: Category model artifact is incomplete."
+                    )
+                    return
 
-        except Exception as exc:
-            print(f"WARNING: Failed to load category model: {exc}")
+                self.category_bundle = bundle
+                self.category_model = category_model
+                self.label_binarizer = label_binarizer
+                self.categories = list(bundle.get("categories", []))
+
+                print("Category multilabel model loaded.")
+
+            except Exception as exc:
+                print(f"WARNING: Failed to load category model: {exc}")
 
     # ============================================================
     # MODEL LOADING
@@ -241,13 +267,15 @@ class FeedbackService:
 
     def _ensure_retriever_loaded(self):
         """Initialize semantic retrieval only when evidence is needed."""
-
         if self._retriever_load_attempted:
             return
 
-        self._retriever_load_attempted = True
+        with self._load_lock:
+            if self._retriever_load_attempted:
+                return
+            self._retriever_load_attempted = True
+            self._load_retriever()
 
-        self._load_retriever()
     def _load_phase16_data(self):
 
         # --------------------------------------------------------

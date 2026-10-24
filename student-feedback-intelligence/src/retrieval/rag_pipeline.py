@@ -6,9 +6,10 @@ and synthesises a structured summary without any LLM dependency.
 """
 from __future__ import annotations
 
+import re
 from collections import Counter
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from src.retrieval.retriever import get_shared_retriever
 
@@ -22,6 +23,153 @@ PHASE17 = (
     / "edurabsa"
     / "phase17"
 )
+
+NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
+}
+
+
+def parse_query_intent(query: str) -> Tuple[Optional[str], Optional[int], Optional[str], str]:
+    """
+    Parse a user query to extract requested sentiment, item count, domain filter,
+    and a cleaned search query for embedding retrieval.
+    """
+    q = query.strip()
+    q_lower = q.lower()
+
+    # 1. Count extraction (e.g. 'give me 5 positive feedback', 'top 3 complaints')
+    detected_count = None
+    count_pattern = (
+        r"\b(?:give(?:\s+me)?|show(?:\s+me)?|find(?:\s+me)?|get(?:\s+me)?|list|top|first|fetch|display)?\s*"
+        r"(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\s+"
+        r"(?:(?:positive|negative|neutral|relevant|good|bad)\s+)?(?:(?:teacher|course|class|university|exam|student|faculty)\s+)?"
+        r"(?:feedback|reviews?|comments?|records?|complaints?|opinions?|examples?|items?)\b"
+    )
+    m_count = re.search(count_pattern, q_lower)
+    if not m_count:
+        m_count = re.search(
+            r"\b(?:top|first|limit)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b",
+            q_lower,
+        )
+
+    if m_count:
+        val_str = m_count.group(1)
+        val = int(val_str) if val_str.isdigit() else NUMBER_WORDS.get(val_str)
+        if val and 1 <= val <= 50:
+            detected_count = min(max(val, 1), 20)
+
+    # 2. Sentiment extraction
+    detected_sentiment = None
+    has_pos_word = bool(
+        re.search(
+            r"\b(positive|positives|good|great|praise|compliment|compliments|strengths?|favorable|like|liked|love|loved|best)\b",
+            q_lower,
+        )
+    )
+    has_neg_word = bool(
+        re.search(
+            r"\b(negative|negatives|bad|worst|complaint|complaints|criticism|criticisms|issues?|problems?|weaknesses?|concerns?|poor|dislike|disliked|hate|hated)\b",
+            q_lower,
+        )
+    )
+    has_neu_word = bool(
+        re.search(
+            r"\b(neutral|neutrals|average|moderate)\b",
+            q_lower,
+        )
+    )
+
+    # Negation checks (e.g. 'not positive', 'not negative')
+    pos_negated = bool(
+        re.search(
+            r"\b(?:not|no|never|hardly|without)\s+(?:any\s+|very\s+)?(?:positive|good|great|praise|compliments?)\b",
+            q_lower,
+        )
+    )
+    neg_negated = bool(
+        re.search(
+            r"\b(?:not|no|never|hardly|without)\s+(?:any\s+|very\s+)?(?:negative|bad|complaint|complaints|issues?|problems?)\b",
+            q_lower,
+        )
+    )
+
+    is_comparison = bool(
+        re.search(
+            r"\b(positive\s+or\s+negative|both|compare|comparison|versus|vs\.?)\b",
+            q_lower,
+        )
+    )
+
+    if not is_comparison:
+        if (has_pos_word and not pos_negated) and not (has_neg_word and not neg_negated):
+            detected_sentiment = "Positive"
+        elif (has_neg_word and not neg_negated) or pos_negated:
+            detected_sentiment = "Negative"
+        elif has_neu_word:
+            detected_sentiment = "Neutral"
+
+    # 3. Domain extraction
+    detected_domain = None
+    if re.search(
+        r"\b(teacher\s+reviews?|professor\s+reviews?|faculty\s+reviews?|instructor\s+reviews?)\b",
+        q_lower,
+    ):
+        detected_domain = "teacher review"
+    elif re.search(
+        r"\b(course\s+reviews?|class\s+reviews?|curriculum\s+reviews?)\b",
+        q_lower,
+    ):
+        detected_domain = "course review"
+    elif re.search(
+        r"\b(university\s+reviews?|campus\s+reviews?|college\s+reviews?)\b",
+        q_lower,
+    ):
+        detected_domain = "university review"
+
+    # 4. Clean search query for semantic vector lookup
+    cleaned = re.sub(
+        r"^(?:can\s+you\s+)?(?:please\s+)?(?:give(?:\s+me)?|show(?:\s+me)?|find(?:\s+me)?|get(?:\s+me)?|list|tell\s+me\s+about|display|fetch)\s+",
+        "",
+        q,
+        flags=re.IGNORECASE,
+    ).strip()
+    search_query = re.sub(
+        r"^(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    ).strip()
+    if not search_query or search_query.lower() in (
+        "feedback",
+        "reviews",
+        "comments",
+        "positive feedback",
+        "negative feedback",
+        "positive reviews",
+        "negative reviews",
+    ):
+        search_query = q
+
+    return detected_sentiment, detected_count, detected_domain, search_query
 
 
 class RAGPipeline:
@@ -59,12 +207,37 @@ class RAGPipeline:
         - limitations: list of limitation strings
         - answer_type: 'deterministic_evidence_grounded'
         """
-        results_df = self.retriever.search(
-            query=query,
-            top_k=top_k,
-            domain=domain,
-            sentiment=sentiment,
+        # Automatically detect intent (sentiment, count, domain) from natural language query
+        detected_sentiment, detected_count, detected_domain, search_query = parse_query_intent(query)
+
+        final_sentiment = (
+            sentiment
+            if (sentiment and sentiment.lower() not in ("all", "none", ""))
+            else detected_sentiment
         )
+        final_domain = (
+            domain
+            if (domain and domain.lower() not in ("all", "none", ""))
+            else detected_domain
+        )
+        final_top_k = (
+            detected_count
+            if (detected_count is not None and (top_k == 8 or top_k is None))
+            else (detected_count or top_k or 8)
+        )
+
+        results_df = self.retriever.search(
+            query=search_query,
+            top_k=final_top_k,
+            domain=final_domain,
+            sentiment=final_sentiment,
+        )
+
+        # Enforce strict sentiment filtering post-search as an extra guarantee
+        if results_df is not None and not results_df.empty and final_sentiment and final_sentiment.lower() not in ("all", "none", ""):
+            results_df = results_df[
+                results_df["overall_sentiment"].str.lower() == final_sentiment.strip().lower()
+            ].head(final_top_k).reset_index(drop=True)
 
         limitations = [
             "This system uses semantic retrieval without generative AI. "
@@ -156,7 +329,17 @@ class RAGPipeline:
             f"Sentiment breakdown: {sentiment_str}.",
         ]
 
-        if negative_share >= 0.5:
+        if total > 0 and len(sentiment_counts) == 1:
+            pure_sent = list(sentiment_counts.keys())[0].lower()
+            if pure_sent == "positive":
+                summary_lines.append("All retrieved reviews express positive feedback.")
+            elif pure_sent == "negative":
+                summary_lines.append(
+                    "All retrieved reviews express negative feedback or concerns."
+                )
+            elif pure_sent == "neutral":
+                summary_lines.append("All retrieved reviews express neutral feedback.")
+        elif negative_share >= 0.5:
             summary_lines.append(
                 f"A majority ({negative_count} of {total}) of retrieved reviews express negative sentiment, "
                 "indicating a recurring concern worth addressing."

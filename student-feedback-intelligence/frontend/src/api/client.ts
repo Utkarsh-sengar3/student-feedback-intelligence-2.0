@@ -14,35 +14,58 @@ import type {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || '';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(
+  path: string,
+  options?: RequestInit,
+  timeoutMs = 90000,
+  retries = 1
+): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
-    clearTimeout(timeoutId);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: response.statusText }));
-      throw new Error((error as { detail?: string }).detail || `HTTP ${response.status}`);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+      });
+      clearTimeout(timeoutId);
+
+      // On Render free tier cold-start, gateways may briefly return 502/503/504 while container boots
+      if (!response.ok) {
+        if ([502, 503, 504].includes(response.status) && attempt < retries) {
+          await new Promise((res) => setTimeout(res, 2000));
+          continue;
+        }
+        const error = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error((error as { detail?: string }).detail || `HTTP ${response.status}`);
+      }
+
+      return (await response.json()) as T;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      const isNetworkError = err instanceof TypeError;
+
+      if ((isAbort || isNetworkError) && attempt < retries) {
+        await new Promise((res) => setTimeout(res, 2000));
+        continue;
+      }
+
+      if (isAbort) {
+        throw new Error('Request timed out. The server may be starting up — please try again in a moment.');
+      }
+      throw err;
     }
-
-    return response.json() as Promise<T>;
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('Request timed out. The server may be starting up — please try again in a moment.');
-    }
-    throw err;
   }
+
+  throw new Error('Request failed after retry.');
 }
 
 export const api = {

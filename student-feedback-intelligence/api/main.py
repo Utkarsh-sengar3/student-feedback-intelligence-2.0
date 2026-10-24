@@ -1,4 +1,18 @@
 import os
+
+# Pre-initialize accelerate and transformer integrations synchronously on the main thread
+# to eliminate multi-threaded race conditions during on-demand or background loading
+try:
+    import accelerate
+    import accelerate.big_modeling
+    from accelerate import dispatch_model
+    import transformers
+    import transformers.integrations.accelerate
+    from sentence_transformers import SentenceTransformer
+    from transformers import AutoTokenizer, AutoModelForSequenceClassification
+except Exception:
+    pass
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -38,6 +52,7 @@ else:
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "https://student-feedback-intelligence.vercel.app",
     ]
 
 app.add_middleware(
@@ -71,6 +86,13 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ============================================================
 
 feedback_service = FeedbackService()
+
+
+@app.on_event("startup")
+def startup_warmup():
+    import threading
+    threading.Thread(target=feedback_service.warmup, daemon=True).start()
+
 
 # ============================================================
 # HEALTH & STATUS

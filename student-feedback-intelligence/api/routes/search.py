@@ -1,3 +1,4 @@
+import threading
 from fastapi import APIRouter, HTTPException, Query
 
 from api.services.search_service import SearchService
@@ -9,6 +10,7 @@ router = APIRouter(
 )
 
 _service = None
+_service_lock = threading.Lock()
 
 
 def get_search_service() -> SearchService:
@@ -16,7 +18,9 @@ def get_search_service() -> SearchService:
     global _service
 
     if _service is None:
-        _service = SearchService()
+        with _service_lock:
+            if _service is None:
+                _service = SearchService()
 
     return _service
 
