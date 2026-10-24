@@ -48,7 +48,8 @@ class FeedbackService:
 
         # Lazy-loading state
         self._load_lock = threading.Lock()
-        self._models_load_attempted = False
+        self._sentiment_load_attempted = False
+        self._category_load_attempted = False
         self._retriever_load_attempted = False
 
         self._load_phase16_data()
@@ -70,18 +71,17 @@ class FeedbackService:
 
     def _ensure_sentiment_model_loaded(self):
         """Load only the sentiment model when sentiment prediction needs it."""
-        if self.sentiment_model is not None:
+        if self._sentiment_load_attempted:
             return
 
         with self._load_lock:
-            if self.sentiment_model is not None:
+            if self._sentiment_load_attempted:
                 return
+            self._sentiment_load_attempted = True
 
-            if not SENTIMENT_MODEL_PATH.exists():
-                print(
-                    f"WARNING: Sentiment model not found: "
-                    f"{SENTIMENT_MODEL_PATH}"
-                )
+            safetensors_file = SENTIMENT_MODEL_PATH / "model.safetensors"
+            bin_file = SENTIMENT_MODEL_PATH / "pytorch_model.bin"
+            if not safetensors_file.exists() and not bin_file.exists():
                 return
 
             try:
@@ -112,24 +112,15 @@ class FeedbackService:
 
     def _ensure_category_model_loaded(self):
         """Load only the category classifier when category prediction needs it."""
-        if (
-            self.category_model is not None
-            and self.label_binarizer is not None
-        ):
+        if self._category_load_attempted:
             return
 
         with self._load_lock:
-            if (
-                self.category_model is not None
-                and self.label_binarizer is not None
-            ):
+            if self._category_load_attempted:
                 return
+            self._category_load_attempted = True
 
             if not CATEGORY_MODEL_PATH.exists():
-                print(
-                    f"WARNING: Category model not found: "
-                    f"{CATEGORY_MODEL_PATH}"
-                )
                 return
 
             try:
