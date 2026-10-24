@@ -5,11 +5,17 @@ services:
     region: oregon
     plan: free
     rootDir: student-feedback-intelligence
-    buildCommand: pip install -r requirements-api.txt
+    buildCommand: pip install -r requirements-api.txt && python -c "from huggingface_hub import hf_hub_download; hf_hub_download('sentence-transformers/all-MiniLM-L6-v2', 'onnx/model.onnx')"
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: CORS_ORIGINS
-        value: https://student-feedback-intelligence.vercel.app
+        value: https://student-feedback-intelligence-2-0.vercel.app,https://student-feedback-intelligence.vercel.app
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
     healthCheckPath: /health

@@ -1,17 +1,9 @@
 import os
 
-# Pre-initialize accelerate and transformer integrations synchronously on the main thread
-# to eliminate multi-threaded race conditions during on-demand or background loading
-try:
-    import accelerate
-    import accelerate.big_modeling
-    from accelerate import dispatch_model
-    import transformers
-    import transformers.integrations.accelerate
-    from sentence_transformers import SentenceTransformer
-    from transformers import AutoTokenizer, AutoModelForSequenceClassification
-except Exception:
-    pass
+# Limit thread pools to minimize memory footprint on constrained environments (Render 512MB RAM)
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,8 +44,17 @@ else:
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "https://student-feedback-intelligence-2-0.vercel.app",
         "https://student-feedback-intelligence.vercel.app",
     ]
+
+# Always ensure production Vercel frontend domains are included in CORS origins
+for prod_origin in [
+    "https://student-feedback-intelligence-2-0.vercel.app",
+    "https://student-feedback-intelligence.vercel.app",
+]:
+    if prod_origin not in origins:
+        origins.append(prod_origin)
 
 app.add_middleware(
     CORSMiddleware,

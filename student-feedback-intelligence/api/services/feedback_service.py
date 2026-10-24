@@ -410,13 +410,47 @@ class FeedbackService:
     # SENTIMENT
     # ============================================================
 
+    @staticmethod
+    def _lexicon_sentiment(text: str) -> tuple:
+        """
+        Lightweight, deterministic lexicon-based sentiment scoring for environments
+        without heavy transformer weights (e.g. Render Free Tier 512MB RAM).
+        """
+        lower = text.lower()
+        pos_words = {
+            "great", "good", "excellent", "best", "awesome", "amazing", "love",
+            "loved", "enjoy", "enjoyed", "helpful", "friendly", "prompt", "clear",
+            "engaging", "flawless", "wow", "enjoyable", "fantastic", "wonderful",
+            "super", "perfect", "appreciate", "appreciated", "recommend", "recommended",
+            "caring", "kind", "brilliant", "outstanding",
+        }
+        neg_words = {
+            "bad", "terrible", "awful", "horrible", "worst", "hate", "hated",
+            "poor", "poorly", "rude", "unhelpful", "disrespectful", "unfair",
+            "condescending", "arrogant", "disappointment", "disappointing",
+            "boring", "defeating", "skip", "useless", "confusing", "hard", "tough",
+            "heavy", "waste", "avoid", "dreadful", "painful", "broken",
+        }
+        words = re.findall(r"\b\w+\b", lower)
+        pos_count = sum(1 for w in words if w in pos_words)
+        neg_count = sum(1 for w in words if w in neg_words)
+
+        if pos_count > neg_count:
+            conf = min(0.95, round(0.70 + 0.05 * (pos_count - neg_count), 2))
+            return "Positive", conf
+        elif neg_count > pos_count:
+            conf = min(0.95, round(0.70 + 0.05 * (neg_count - pos_count), 2))
+            return "Negative", conf
+        else:
+            return "Neutral", 0.70
+
     def _predict_sentiment(self, text):
 
         if self.sentiment_model is None:
             self._ensure_sentiment_model_loaded()
 
         if self.sentiment_model is None:
-            return "Unavailable", None
+            return self._lexicon_sentiment(text)
 
         import torch
 
@@ -485,6 +519,29 @@ class FeedbackService:
     # MULTILABEL CATEGORY PREDICTION
     # ============================================================
 
+    @staticmethod
+    def _keyword_categories(text: str) -> list:
+        t = text.lower()
+        rules = [
+            ("Course - Workload", ["workload", "work load", "too much work", "heavy workload", "tons of work", "assignments"]),
+            ("Course - Assessment", ["exam", "exams", "midterm", "final exam", "test", "tests", "quiz", "quizzes", "grading", "rubric", "marking"]),
+            ("Course - Course materials", ["slides", "powerpoint", "notes", "textbook", "readings", "lecture notes"]),
+            ("Course - Content", ["syllabus", "curriculum", "course content", "concepts", "topic"]),
+            ("Course - Difficulty", ["difficult", "difficulty", "hard", "tough", "complicated", "impossible"]),
+            ("Course - Learning activity", ["tutorial", "tutorials", "lab", "group project", "workshop"]),
+            ("Staff - Teaching", ["professor", "instructor", "lecturer", "teacher", "teaching", "teach", "explains", "explanation"]),
+            ("Staff - Helpfulness", ["helpful", "unhelpful", "approachable", "office hours", "available to help"]),
+            ("Staff - Attitude", ["rude", "attitude", "disrespectful", "unfair", "condescending", "arrogant", "caring", "kind", "friendly"]),
+            ("University - Information & services", ["student service", "student services", "registrar", "registration", "admissions", "financial aid", "advisor"]),
+            ("University - Campus & facilities", ["campus", "library", "cafeteria", "facility", "facilities", "dorm", "parking", "gym"]),
+            ("University - Technology & tools", ["wifi", "wi-fi", "portal", "website", "canvas", "blackboard", "network", "internet"]),
+        ]
+        matched = []
+        for cat, kw_list in rules:
+            if any(re.search(r"\b" + re.escape(kw) + r"\b", t) for kw in kw_list):
+                matched.append(cat)
+        return matched
+
     def _predict_categories(self, text):
 
         if (
@@ -497,7 +554,7 @@ class FeedbackService:
             self.category_model is None
             or self.label_binarizer is None
         ):
-            return []
+            return self._keyword_categories(text)
 
         try:
 
