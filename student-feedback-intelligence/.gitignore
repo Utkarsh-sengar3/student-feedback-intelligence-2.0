@@ -19,6 +19,7 @@ data/external/*
 data/processed/*
 !data/processed/edurabsa/
 data/processed/edurabsa/*
+!data/processed/edurabsa/annotations_canonical.csv
 !data/processed/edurabsa/phase16/
 data/processed/edurabsa/phase16/*
 !data/processed/edurabsa/phase17/
