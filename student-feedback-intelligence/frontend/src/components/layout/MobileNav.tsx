@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart2, Search, BookOpen, Activity, MessageSquare } from 'lucide-react';
+import { Home, BarChart2, Search, BookOpen, Activity, MessageSquare, PieChart } from 'lucide-react';
 
 const ICONS: Record<string, React.ReactNode> = {
   '/': <Home size={18} />,
   '/analyze': <Activity size={18} />,
   '/dashboard': <BarChart2 size={18} />,
+  '/analytics': <PieChart size={18} />,
   '/reviews': <BookOpen size={18} />,
   '/models': <Search size={18} />,
   '/assistant': <MessageSquare size={18} />,

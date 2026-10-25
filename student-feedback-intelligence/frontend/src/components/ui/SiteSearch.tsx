@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { label: 'Home', path: '/', description: 'Platform overview and quick start' },
   { label: 'Analyze Feedback', path: '/analyze', description: 'Analyze student feedback with AI' },
   { label: 'Dashboard', path: '/dashboard', description: 'Insights and priority summary' },
+  { label: 'EDA & Analytics', path: '/analytics', description: 'Interactive exploratory data analysis, Power BI charts, and category crosstabs' },
   { label: 'Reviews Explorer', path: '/reviews', description: 'Browse 6,500+ indexed reviews' },
   { label: 'Model Performance', path: '/models', description: 'Sentiment, category, and retrieval metrics' },
   { label: 'AI Assistant', path: '/assistant', description: 'Ask questions about student feedback' },

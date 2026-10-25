@@ -19,6 +19,7 @@ from api.routes.insights import router as insights_router
 from api.routes.assistant import router as assistant_router
 from api.routes.reviews import router as reviews_router
 from api.routes.metrics import router as metrics_router
+from api.routes.analytics import router as analytics_router
 
 app = FastAPI(
     title="AI-Based Student Feedback Intelligence API",
@@ -165,6 +166,7 @@ app.include_router(insights_router)
 app.include_router(assistant_router)
 app.include_router(reviews_router)
 app.include_router(metrics_router)
+app.include_router(analytics_router)
 
 # ============================================================
 # ROOT
@@ -190,5 +192,6 @@ def root():
             "/api/v1/assistant",
             "/api/v1/reviews",
             "/api/v1/model-metrics",
+            "/api/v1/analytics",
         ],
     }

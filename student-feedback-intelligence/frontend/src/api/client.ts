@@ -10,6 +10,9 @@ import type {
   AssistantResponse,
   HealthResponse,
   StatusResponse,
+  AnalyticsOverviewResponse,
+  AnalyticsRecordsResponse,
+  AnalyticsFilterParams,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || '';
@@ -125,4 +128,38 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  analytics: {
+    overview: (params?: AnalyticsFilterParams) => {
+      const searchParams = new URLSearchParams();
+      if (params?.domain && params.domain !== 'all') searchParams.set('domain', params.domain);
+      if (params?.sentiment && params.sentiment !== 'all') searchParams.set('sentiment', params.sentiment);
+      if (params?.category && params.category !== 'all') searchParams.set('category', params.category);
+      if (params?.search && params.search.trim()) searchParams.set('search', params.search.trim());
+      const query = searchParams.toString();
+      return request<AnalyticsOverviewResponse>(`/api/v1/analytics/overview${query ? `?${query}` : ''}`);
+    },
+
+    records: (page = 1, page_size = 20, params?: AnalyticsFilterParams) => {
+      const searchParams = new URLSearchParams({
+        page: String(page),
+        page_size: String(page_size),
+      });
+      if (params?.domain && params.domain !== 'all') searchParams.set('domain', params.domain);
+      if (params?.sentiment && params.sentiment !== 'all') searchParams.set('sentiment', params.sentiment);
+      if (params?.category && params.category !== 'all') searchParams.set('category', params.category);
+      if (params?.search && params.search.trim()) searchParams.set('search', params.search.trim());
+      return request<AnalyticsRecordsResponse>(`/api/v1/analytics/records?${searchParams.toString()}`);
+    },
+
+    exportUrl: (params?: AnalyticsFilterParams) => {
+      const searchParams = new URLSearchParams();
+      if (params?.domain && params.domain !== 'all') searchParams.set('domain', params.domain);
+      if (params?.sentiment && params.sentiment !== 'all') searchParams.set('sentiment', params.sentiment);
+      if (params?.category && params.category !== 'all') searchParams.set('category', params.category);
+      if (params?.search && params.search.trim()) searchParams.set('search', params.search.trim());
+      const query = searchParams.toString();
+      return `${API_BASE}/api/v1/analytics/export${query ? `?${query}` : ''}`;
+    },
+  },
 };

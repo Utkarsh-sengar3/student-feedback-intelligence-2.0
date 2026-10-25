@@ -15,6 +15,7 @@ export function Footer() {
             <NavLink to="/" className="footer-link">Home</NavLink>
             <NavLink to="/analyze" className="footer-link">Analyze</NavLink>
             <NavLink to="/dashboard" className="footer-link">Dashboard</NavLink>
+            <NavLink to="/analytics" className="footer-link">EDA & Analytics</NavLink>
             <NavLink to="/reviews" className="footer-link">Reviews</NavLink>
             <NavLink to="/models" className="footer-link">Models</NavLink>
             <NavLink to="/assistant" className="footer-link">Assistant</NavLink>

@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Home', exact: true },
   { to: '/analyze', label: 'Analyze' },
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/analytics', label: 'EDA & Analytics' },
   { to: '/reviews', label: 'Reviews' },
   { to: '/models', label: 'Models' },
   { to: '/assistant', label: 'Assistant' },

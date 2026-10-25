@@ -7,6 +7,7 @@ import { PrivacyBanner } from './components/ui/PrivacyBanner';
 import Home from './pages/Home';
 import Analyze from './pages/Analyze';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import Reviews from './pages/Reviews';
 import Models from './pages/Models';
 import Assistant from './pages/Assistant';
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/analyze" element={<Analyze />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/models" element={<Models />} />
           <Route path="/assistant" element={<Assistant />} />

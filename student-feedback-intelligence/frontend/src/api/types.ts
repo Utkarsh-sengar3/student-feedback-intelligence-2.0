@@ -155,3 +155,119 @@ export interface StatusResponse {
     semantic_retriever_loaded: boolean;
   };
 }
+
+
+export interface AnalyticsKPIs {
+  total_records: number;
+  positive_count: number;
+  positive_pct: number;
+  negative_count: number;
+  negative_pct: number;
+  neutral_count: number;
+  neutral_pct: number;
+  distinct_domains: number;
+  distinct_categories: number;
+  avg_word_count: number;
+  avg_char_length: number;
+}
+
+export interface SentimentSlice {
+  name: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface DomainSlice {
+  domain: string;
+  total: number;
+  positive: number;
+  negative: number;
+  neutral: number;
+  positive_pct: number;
+  negative_pct: number;
+}
+
+export interface CategoryVolumeSlice {
+  category: string;
+  total: number;
+  positive: number;
+  negative: number;
+  neutral: number;
+  positive_pct: number;
+  negative_pct: number;
+}
+
+export interface TopCategoryMetric {
+  category: string;
+  count: number;
+  total_in_category: number;
+  percentage: number;
+}
+
+export interface HistogramBin {
+  bin: string;
+  count: number;
+}
+
+export interface TermFrequency {
+  term: string;
+  count: number;
+}
+
+export interface TextEDA {
+  word_count_distribution: HistogramBin[];
+  char_length_distribution: HistogramBin[];
+  top_positive_terms: TermFrequency[];
+  top_negative_terms: TermFrequency[];
+  normalization_notes: string;
+}
+
+export interface TemporalNotice {
+  has_temporal_data: boolean;
+  reason: string;
+}
+
+export interface FilterOptions {
+  domains: string[];
+  categories: string[];
+  sentiments: string[];
+}
+
+export interface AnalyticsOverviewResponse {
+  kpis: AnalyticsKPIs;
+  sentiment_distribution: SentimentSlice[];
+  domain_distribution: DomainSlice[];
+  category_volume: CategoryVolumeSlice[];
+  top_negative_categories: TopCategoryMetric[];
+  top_positive_categories: TopCategoryMetric[];
+  text_eda: TextEDA;
+  temporal_notice: TemporalNotice;
+  filter_options: FilterOptions;
+}
+
+export interface AnalyticsRecord {
+  review_id: number;
+  original_id?: string;
+  domain: string;
+  overall_sentiment: string;
+  text: string;
+  categories: string[];
+  word_count: number;
+  char_count: number;
+}
+
+export interface AnalyticsRecordsResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  records: AnalyticsRecord[];
+}
+
+export interface AnalyticsFilterParams {
+  domain?: string;
+  sentiment?: string;
+  category?: string;
+  search?: string;
+}
